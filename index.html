@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Dithering Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .upload-section {
+            margin-bottom: 20px;
+        }
+        .preview-section {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .preview-container {
+            flex: 1;
+        }
+        canvas {
+            max-width: 100%;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        select {
+            padding: 8px;
+            margin: 10px 0;
+        }
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .pattern-input {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .pattern-input label {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .pattern-preview {
+            margin-top: 5px;
+            border: 1px solid #eee;
+        }
+        .scale-control {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .scale-control label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .scale-control input[type="range"] {
+            width: 100%;
+            max-width: 300px;
+        }
+        .processing-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #downloadButton {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #downloadButton:hover {
+            background-color: #1976D2;
+        }
+        .loading-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #f0f0f0;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+        @keyframes loading {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .pattern-uploads {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .pattern-upload-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .pattern-upload-item label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .pattern-input {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Dithering Tool</h1>
+        
+        <div class="upload-section">
+            <h2>Upload Image</h2>
+            <input type="file" id="imageInput" accept="image/*">
+            
+            <h2>Upload SVG Patterns</h2>
+            <div class="pattern-uploads">
+                <div class="pattern-upload-item">
+                    <label>Upload All Patterns (0.svg through 8.svg)</label>
+                    <input type="file" id="allPatternsInput" accept=".svg" multiple>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h2>Dithering Pattern</h2>
+            <div id="customPatternControls">
+                <h3>Pattern Preview</h3>
+                <p>Patterns are automatically loaded from the SVGs folder.</p>
+                <div class="pattern-grid">
+                    <div class="pattern-input">
+                        <label>Level 0 (Darkest)</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 1</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 2</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 3</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 4</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 5</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 6</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 7</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                    <div class="pattern-input">
+                        <label>Level 8 (Brightest)</label>
+                        <canvas class="pattern-preview" width="50" height="50"></canvas>
+                    </div>
+                </div>
+                <div class="scale-control">
+                    <label for="patternScale">Pattern Scale: <span id="scaleValue">1.0</span>x</label>
+                    <input type="range" id="patternScale" min="0.1" max="5" step="0.1" value="1">
+                </div>
+            </div>
+            
+            <div class="processing-controls">
+                <button id="processButton">Process Image</button>
+                <button id="downloadButtonSVG" style="display: none;">Download (SVG)</button>
+                <button id="downloadButtonJPG" style="display: none;">Download (JPG)</button>
+                <div id="loadingBar" class="loading-bar" style="display: none;">
+                    <div class="loading-progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <div class="preview-container">
+                <h3>Original Image</h3>
+                <canvas id="originalCanvas"></canvas>
+            </div>
+            <div class="preview-container">
+                <h3>Dithered Image</h3>
+                <canvas id="ditheredCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Image processing variables
+        let originalImage = null;
+        const originalCanvas = document.getElementById('originalCanvas');
+        const ditheredCanvas = document.getElementById('ditheredCanvas');
+        const ctx = originalCanvas.getContext('2d');
+        const ditheredCtx = ditheredCanvas.getContext('2d');
+
+        // Event listeners
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+        document.getElementById('processButton').addEventListener('click', processImage);
+        document.getElementById('downloadButtonSVG').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'dithered-image.svg';
+            
+            // Create SVG output using original patterns
+            const svgData = createDitheredSVG();
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml'});
+            link.href = URL.createObjectURL(svgBlob);
+            link.click();
+        });
+
+        document.getElementById('downloadButtonJPG').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'dithered-image.jpg';
+            
+            // Convert canvas to JPG
+            const jpgData = ditheredCanvas.toDataURL('image/jpeg', 1.0);
+            link.href = jpgData;
+            link.click();
+        });
+
+        function createDitheredSVG() {
+            const width = originalCanvas.width;
+            const height = originalCanvas.height;
+            
+            // Get the image data
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            // Calculate grid size based on scale
+            const baseSize = 50; // Base size of patterns
+            const gridSize = Math.floor(baseSize * patternScale);
+            
+            // Create SVG string with proper namespaces and structure
+            let svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" 
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="${width}" 
+     height="${height}" 
+     viewBox="0 0 ${width} ${height}"
+     version="1.1">`;
+            
+            // Add each pattern based on brightness
+            for (let y = 0; y < height; y += gridSize) {
+                for (let x = 0; x < width; x += gridSize) {
+                    // Calculate average brightness for this grid cell
+                    let totalBrightness = 0;
+                    let pixelCount = 0;
+                    
+                    for (let py = y; py < Math.min(y + gridSize, height); py++) {
+                        for (let px = x; px < Math.min(x + gridSize, width); px++) {
+                            const idx = (py * width + px) * 4;
+                            const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                            totalBrightness += gray;
+                            pixelCount++;
+                        }
+                    }
+                    
+                    const avgBrightness = totalBrightness / pixelCount;
+                    const patternLevel = Math.min(8, Math.floor(avgBrightness / 28.3));
+                    
+                    // Add the pattern SVG with proper transformation
+                    const patternSVG = patternSVGs[patternLevel];
+                    
+                    // Clean and prepare the pattern content
+                    let patternContent = patternSVG
+                        .replace(/<\?xml[^>]*\?>/g, '')
+                        .replace(/<svg[^>]*>/g, '')
+                        .replace(/<\/svg>/g, '')
+                        .replace(/xmlns="[^"]*"/g, '') // Remove any existing xmlns
+                        .replace(/xmlns:xlink="[^"]*"/g, ''); // Remove any existing xlink xmlns
+                    
+                    // Add the pattern with proper scaling and positioning
+                    svg += `<g transform="translate(${x},${y}) scale(${gridSize/50})">`;
+                    svg += patternContent;
+                    svg += '</g>';
+                }
+            }
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    originalImage = new Image();
+                    originalImage.onload = function() {
+                        // Set canvas dimensions
+                        originalCanvas.width = originalImage.width;
+                        originalCanvas.height = originalImage.height;
+                        ditheredCanvas.width = originalImage.width;
+                        ditheredCanvas.height = originalImage.height;
+                        
+                        // Draw original image
+                        ctx.drawImage(originalImage, 0, 0);
+                    };
+                    originalImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        let patternMatrices = new Array(9).fill(null);
+        let patternScale = 1.0;
+        let patternSVGs = new Array(9).fill(null);
+
+        // Add scale control event listener
+        document.getElementById('patternScale').addEventListener('input', function(e) {
+            patternScale = parseFloat(e.target.value);
+            document.getElementById('scaleValue').textContent = patternScale.toFixed(1);
+        });
+
+        // Remove individual pattern upload event listeners and keep only the multiple upload handler
+        document.getElementById('allPatternsInput').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            const loadedPatterns = new Set();
+
+            files.forEach(file => {
+                // Extract pattern number from filename (e.g., "0.svg" -> 0)
+                const match = file.name.match(/^(\d+)\.svg$/);
+                if (match) {
+                    const patternIndex = parseInt(match[1]);
+                    if (patternIndex >= 0 && patternIndex <= 8) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            patternSVGs[patternIndex] = event.target.result;
+                            processSVGPattern(event.target.result, patternIndex);
+                            loadedPatterns.add(patternIndex);
+                        };
+                        reader.readAsText(file);
+                    }
+                }
+            });
+
+            // Show loading state
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = true;
+            processButton.textContent = 'Loading Patterns...';
+
+            // Check if all patterns are loaded
+            const checkInterval = setInterval(() => {
+                if (loadedPatterns.size === files.length) {
+                    clearInterval(checkInterval);
+                    processButton.disabled = false;
+                    processButton.textContent = 'Process Image';
+                }
+            }, 100);
+        });
+
+        // Load all SVG patterns when the page loads
+        window.addEventListener('load', loadAllPatterns);
+
+        function loadAllPatterns() {
+            const patternPromises = [];
+            for (let i = 0; i < 9; i++) {
+                const promise = fetch(`./SVGs/${i}.svg`)
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error(`Failed to load pattern ${i}: HTTP ${response.status}`);
+                            throw new Error(`Failed to load pattern ${i}: HTTP ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(svgString => {
+                        console.log(`Successfully loaded pattern ${i}`);
+                        patternSVGs[i] = svgString;
+                        processSVGPattern(svgString, i);
+                    })
+                    .catch(error => {
+                        console.error(`Error loading pattern ${i}:`, error);
+                        // Set a default pattern for failed loads
+                        patternSVGs[i] = `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="white"/></svg>`;
+                        processSVGPattern(patternSVGs[i], i);
+                    });
+                patternPromises.push(promise);
+            }
+
+            // Show loading state while patterns are being loaded
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = true;
+            processButton.textContent = 'Loading Patterns...';
+
+            Promise.all(patternPromises)
+                .then(() => {
+                    console.log('All patterns loaded successfully');
+                    processButton.disabled = false;
+                    processButton.textContent = 'Process Image';
+                })
+                .catch(error => {
+                    console.error('Error loading patterns:', error);
+                    processButton.disabled = false;
+                    processButton.textContent = 'Process Image';
+                });
+        }
+
+        function processSVGPattern(svgString, level) {
+            const previewCanvas = document.querySelectorAll('.pattern-preview')[level];
+            const previewCtx = previewCanvas.getContext('2d');
+            
+            // Create an image from the SVG
+            const img = new Image();
+            img.onload = function() {
+                console.log(`Pattern ${level} rendered successfully`);
+                // Set canvas size to match SVG
+                previewCanvas.width = img.width;
+                previewCanvas.height = img.height;
+                
+                // Draw SVG to canvas
+                previewCtx.drawImage(img, 0, 0);
+            };
+            img.onerror = function(error) {
+                console.error(`Failed to process SVG for pattern ${level}:`, error);
+                // Draw a fallback pattern
+                previewCtx.fillStyle = 'white';
+                previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+            };
+            
+            // Properly encode the SVG string
+            const encodedSVG = encodeURIComponent(svgString);
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodedSVG;
+        }
+
+        function processImage() {
+            if (!originalImage) {
+                alert('Please upload an image first');
+                return;
+            }
+
+            const loadingBar = document.getElementById('loadingBar');
+            const loadingProgress = loadingBar.querySelector('.loading-progress');
+            const processButton = document.getElementById('processButton');
+            const downloadButtonSVG = document.getElementById('downloadButtonSVG');
+            const downloadButtonJPG = document.getElementById('downloadButtonJPG');
+
+            // Show loading bar and disable button
+            loadingBar.style.display = 'block';
+            loadingProgress.style.width = '0%';
+            processButton.disabled = true;
+            downloadButtonSVG.style.display = 'none';
+            downloadButtonJPG.style.display = 'none';
+
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            
+            // Calculate grid size based on scale
+            const baseSize = 50; // Base size of patterns
+            const gridSize = Math.floor(baseSize * patternScale);
+            
+            // Calculate total number of grid cells
+            const totalCells = Math.ceil(originalCanvas.width / gridSize) * Math.ceil(originalCanvas.height / gridSize);
+            let processedCells = 0;
+
+            // Create a temporary canvas for the preview
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.width = originalCanvas.width;
+            previewCanvas.height = originalCanvas.height;
+            const previewCtx = previewCanvas.getContext('2d');
+            
+            // Fill with white background
+            previewCtx.fillStyle = 'white';
+            previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Create pattern images for preview
+            const patternImages = patternSVGs.map(svg => {
+                const img = new Image();
+                const encodedSVG = encodeURIComponent(svg);
+                img.src = 'data:image/svg+xml;charset=utf-8,' + encodedSVG;
+                return img;
+            });
+
+            function processNextCell() {
+                const x = (processedCells % Math.ceil(originalCanvas.width / gridSize)) * gridSize;
+                const y = Math.floor(processedCells / Math.ceil(originalCanvas.width / gridSize)) * gridSize;
+
+                if (y >= originalCanvas.height) {
+                    // Finished processing
+                    loadingBar.style.display = 'none';
+                    processButton.disabled = false;
+                    document.getElementById('downloadButtonSVG').style.display = 'inline-block';
+                    document.getElementById('downloadButtonJPG').style.display = 'inline-block';
+                    return;
+                }
+
+                // Calculate average brightness for this grid cell
+                let totalBrightness = 0;
+                let pixelCount = 0;
+                
+                for (let py = y; py < Math.min(y + gridSize, originalCanvas.height); py++) {
+                    for (let px = x; px < Math.min(x + gridSize, originalCanvas.width); px++) {
+                        const idx = (py * originalCanvas.width + px) * 4;
+                        const gray = (imageData.data[idx] + imageData.data[idx + 1] + imageData.data[idx + 2]) / 3;
+                        totalBrightness += gray;
+                        pixelCount++;
+                    }
+                }
+                
+                const avgBrightness = totalBrightness / pixelCount;
+                const patternLevel = Math.min(8, Math.floor(avgBrightness / 28.3));
+                
+                // Draw the pattern if it's loaded
+                if (patternImages[patternLevel] && patternImages[patternLevel].complete) {
+                    previewCtx.drawImage(
+                        patternImages[patternLevel],
+                        x,
+                        y,
+                        gridSize,
+                        gridSize
+                    );
+                }
+
+                // Update the main canvas
+                ditheredCtx.drawImage(previewCanvas, 0, 0);
+
+                // Update progress
+                processedCells++;
+                const progress = (processedCells / totalCells) * 100;
+                loadingProgress.style.width = progress + '%';
+
+                // Process next cell
+                requestAnimationFrame(processNextCell);
+            }
+
+            // Start processing
+            processNextCell();
+        }
+
+        function getPatternMatrix(pattern) {
+            // Basic pattern matrices
+            const patterns = {
+                'floyd-steinberg': [
+                    [0, 0, 0],
+                    [0, 0, 7],
+                    [3, 5, 1]
+                ],
+                'bayer': [
+                    [0, 8, 2, 10],
+                    [12, 4, 14, 6],
+                    [3, 11, 1, 9],
+                    [15, 7, 13, 5]
+                ]
+            };
+            return patterns[pattern] || patterns['floyd-steinberg'];
+        }
+    </script>
+</body>
+</html>
