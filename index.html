@@ -123,22 +123,10 @@
             100% { width: 100%; }
         }
         .pattern-uploads {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 20px 0;
+            display: none;
         }
         .pattern-upload-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .pattern-upload-item label {
-            font-size: 0.9em;
-            color: #666;
+            display: none;
         }
         .pattern-input {
             width: 100%;
@@ -152,14 +140,6 @@
         <div class="upload-section">
             <h2>Upload Image</h2>
             <input type="file" id="imageInput" accept="image/*">
-            
-            <h2>Upload SVG Patterns</h2>
-            <div class="pattern-uploads">
-                <div class="pattern-upload-item">
-                    <label>Upload All Patterns (0.svg through 8.svg)</label>
-                    <input type="file" id="allPatternsInput" accept=".svg" multiple>
-                </div>
-            </div>
         </div>
 
         <div class="controls">
@@ -214,7 +194,7 @@
             <div class="processing-controls">
                 <button id="processButton">Process Image</button>
                 <button id="downloadButtonSVG" style="display: none;">Download (SVG)</button>
-                <button id="downloadButtonJPG" style="display: none;">Download (JPG)</button>
+                <button id="downloadButtonPNG" style="display: none;">Download (PNG)</button>
                 <div id="loadingBar" class="loading-bar" style="display: none;">
                     <div class="loading-progress"></div>
                 </div>
@@ -255,13 +235,33 @@
             link.click();
         });
 
-        document.getElementById('downloadButtonJPG').addEventListener('click', function() {
+        document.getElementById('downloadButtonPNG').addEventListener('click', function() {
             const link = document.createElement('a');
-            link.download = 'dithered-image.jpg';
+            link.download = 'dithered-image.png';
             
-            // Convert canvas to JPG
-            const jpgData = ditheredCanvas.toDataURL('image/jpeg', 1.0);
-            link.href = jpgData;
+            // Create a temporary canvas to handle transparency
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = ditheredCanvas.width;
+            tempCanvas.height = ditheredCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Get the image data from the dithered canvas
+            const imageData = ditheredCtx.getImageData(0, 0, ditheredCanvas.width, ditheredCanvas.height);
+            const data = imageData.data;
+            
+            // Make white pixels transparent
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255) {
+                    data[i + 3] = 0; // Set alpha to 0 for white pixels
+                }
+            }
+            
+            // Put the modified image data back
+            tempCtx.putImageData(imageData, 0, 0);
+            
+            // Convert to PNG with transparency
+            const pngData = tempCanvas.toDataURL('image/png');
+            link.href = pngData;
             link.click();
         });
 
@@ -359,43 +359,6 @@
             document.getElementById('scaleValue').textContent = patternScale.toFixed(1);
         });
 
-        // Remove individual pattern upload event listeners and keep only the multiple upload handler
-        document.getElementById('allPatternsInput').addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            const loadedPatterns = new Set();
-
-            files.forEach(file => {
-                // Extract pattern number from filename (e.g., "0.svg" -> 0)
-                const match = file.name.match(/^(\d+)\.svg$/);
-                if (match) {
-                    const patternIndex = parseInt(match[1]);
-                    if (patternIndex >= 0 && patternIndex <= 8) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            patternSVGs[patternIndex] = event.target.result;
-                            processSVGPattern(event.target.result, patternIndex);
-                            loadedPatterns.add(patternIndex);
-                        };
-                        reader.readAsText(file);
-                    }
-                }
-            });
-
-            // Show loading state
-            const processButton = document.getElementById('processButton');
-            processButton.disabled = true;
-            processButton.textContent = 'Loading Patterns...';
-
-            // Check if all patterns are loaded
-            const checkInterval = setInterval(() => {
-                if (loadedPatterns.size === files.length) {
-                    clearInterval(checkInterval);
-                    processButton.disabled = false;
-                    processButton.textContent = 'Process Image';
-                }
-            }, 100);
-        });
-
         // Load all SVG patterns when the page loads
         window.addEventListener('load', loadAllPatterns);
 
@@ -479,14 +442,14 @@
             const loadingProgress = loadingBar.querySelector('.loading-progress');
             const processButton = document.getElementById('processButton');
             const downloadButtonSVG = document.getElementById('downloadButtonSVG');
-            const downloadButtonJPG = document.getElementById('downloadButtonJPG');
+            const downloadButtonPNG = document.getElementById('downloadButtonPNG');
 
             // Show loading bar and disable button
             loadingBar.style.display = 'block';
             loadingProgress.style.width = '0%';
             processButton.disabled = true;
             downloadButtonSVG.style.display = 'none';
-            downloadButtonJPG.style.display = 'none';
+            downloadButtonPNG.style.display = 'none';
 
             // Get image data
             const imageData = ctx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
@@ -526,7 +489,7 @@
                     loadingBar.style.display = 'none';
                     processButton.disabled = false;
                     document.getElementById('downloadButtonSVG').style.display = 'inline-block';
-                    document.getElementById('downloadButtonJPG').style.display = 'inline-block';
+                    document.getElementById('downloadButtonPNG').style.display = 'inline-block';
                     return;
                 }
 
